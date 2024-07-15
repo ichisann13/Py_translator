@@ -5,10 +5,13 @@ import random
 from hashlib import md5
 
 class TranslatorApp:
-    def __init__(self, source_text, source_lang):
-        self.source_text = source_text
+    def __init__(self, source_lang, target_lang):
         self.source_lang = source_lang
-        self.trans_result = "example"
+        self.target_lang = target_lang
+        self.trans_result = ""
+        self.appid = ""
+        self.appkey = ""
+        self.init_key()
 
     def make_md5(self, s, encoding='utf-8'):
         return md5(s.encode(encoding)).hexdigest()
@@ -18,8 +21,8 @@ class TranslatorApp:
             with open("./key.txt", "r", encoding="utf-8") as f:
                 infor = f.readlines()
                 if infor[0].strip() != "" and infor[1].strip() != "":
-                    appid = infor[0].strip()
-                    appkey = infor[1].strip()
+                    self.appid = infor[0].strip()
+                    self.appkey = infor[1].strip()
                 
                 else:
                     print("缺少密钥")
@@ -29,30 +32,26 @@ class TranslatorApp:
             print("key.txt不存在")
             exit(1)
 
-        return appid, appkey
-
     def init_translator(self):        
-        from_lang = self.source_lang                                    # 自动检测auto, 英文en, 中文zh
-        to_lang = 'zh'
+        # 自动检测auto, 英文en, 中文zh, 日语jp, 韩语kor
+        from_lang = self.source_lang                                    
+        to_lang = self.target_lang
         url = 'http://api.fanyi.baidu.com/api/trans/vip/translate'
 
         return from_lang, to_lang, url
 
-    def translator(self):    
-        appid, appkey = self.init_key()
+    def translator(self, query):    
         from_lang, to_lang, url = self.init_translator()
-
-        query = self.source_text
 
         # 生成salt
         salt = random.randint(32768, 65536)
 
         # 计算签名值, 拼接顺序:appid, query, salt, appkey
-        sign = self.make_md5(appid + query + str(salt) + appkey)
+        sign = self.make_md5(self.appid + query + str(salt) + self.appkey)
 
         # 使用post方式发送要指定Content-Type为application/x-www-form-urlencoded
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        payload = {'appid': appid, 'q': query, 'from': from_lang, 'to': to_lang, 'salt': salt, 'sign': sign}
+        payload = {'appid': self.appid, 'q': query, 'from': from_lang, 'to': to_lang, 'salt': salt, 'sign': sign}
 
         # 发送请求
         req = requests.post(url, params=payload, headers=headers)
