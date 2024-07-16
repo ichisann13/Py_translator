@@ -1,10 +1,12 @@
 import os
 import time
+import logging
 from paddleocr import PaddleOCR
 
-def ocr_func():
+def ocr_func(ocr_lang):
+    logging.disable(logging.DEBUG)
     # OCR常用语言缩写:ch, en, japan, ru, korean, fr, german, it
-    ocr = PaddleOCR(use_angle_cls = True, lang = "ch")
+    ocr = PaddleOCR(use_angle_cls = True, lang = ocr_lang)
 
     if os.path.exists("./screenshots/scrshot.png"):        
         img = "./screenshots/scrshot.png"
