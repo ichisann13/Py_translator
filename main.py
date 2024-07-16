@@ -150,11 +150,6 @@ def get_text(root, combo1, combo2):
     target_lang = text2
     root.destroy()
 
-def test_func(scr):
-    while True:
-        if not queue.empty():
-            print(f"队列头部:{queue.queue[0]}, 队列长度:{queue.qsize}")
-
 
 def main():    
     lang_func()
@@ -173,9 +168,6 @@ def main():
     thread0.start()
     thread1.start()
     thread2.start()
-
-    test = threading.Thread(target=test_func, args=(scr, ))
-    test.start()
 
 if __name__ == "__main__":
     main()
