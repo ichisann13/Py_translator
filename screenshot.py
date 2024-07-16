@@ -7,7 +7,7 @@ import os
 
 
 class ScreenshotApp:
-    def __init__(self):
+    def __init__(self, ocr_lang):
         self.root = tkinter.Tk()
         self.root.attributes('-fullscreen', True)
         self.root.attributes('-alpha', 0.2)
@@ -23,7 +23,8 @@ class ScreenshotApp:
         self.rect = None
         self.width = None
         self.height = None
-        self.result = "test"
+        self.result = "example"
+        self.ocr_lang = ocr_lang
         self.root.mainloop()
                          
     def show_root(self):
@@ -77,7 +78,7 @@ class ScreenshotApp:
         save_path = "./screenshots/scrshot.png"
         screenshot.save(save_path)
 
-        self.result = ocr.ocr_func()
+        self.result = ocr.ocr_func(self.ocr_lang)
 
     def get_result(self):
         return self.result
