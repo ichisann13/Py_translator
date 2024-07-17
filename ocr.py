@@ -14,9 +14,16 @@ def ocr_func(ocr_lang):
 
         # 判断OCR内容是否为空
         if results[0] != None:
-            for result in results[0]:   
-                # 文字识别结果, 改为[1][1]是可信度                     
-                return result[1][0]         
+            arrs = []
+            for result in results:
+                for i in range(len(result)):
+                    arrs.append(result[i][1][0])
+
+            str = ""
+            for arr in arrs:
+                str = str + arr + " "
+            
+            return str
               
     else:
         time.sleep(1)
