@@ -1,9 +1,5 @@
 
-<<<<<<< HEAD
-第一行放ID，第二行放Key
-api申请地址: https://api.fanyi.baidu.com/api/trans/product/prodinfo
-=======
+
 
 第一行放ID，第二行放Key
 api申请地址: https://api.fanyi.baidu.com/api/trans/product/prodinfo
->>>>>>> ad2711d377421bd9622cb5d47d8b3abf3b14d3b9
