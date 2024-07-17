@@ -4,6 +4,7 @@ import threading
 import difflib
 import tkinter
 import queue
+import sys
 import os
 from tkinter.scrolledtext import ScrolledText
 
@@ -167,7 +168,7 @@ def get_text(root, combo1, combo2):
 def main():    
     lang_func()
     if source_lang == "":
-        exit(0)
+        sys.exit(1)
 
     ocr_lang = ocr_langs[trans_langs.index(source_lang)]                # 获取ocr语言列表内对应的语种
 
