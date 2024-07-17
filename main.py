@@ -1,9 +1,11 @@
 import translator
 import screenshot
 import threading
+import difflib
 import tkinter
 import queue
 import os
+from tkinter.scrolledtext import ScrolledText
 
 queue = queue.Queue()
 source_lang = ""
@@ -12,59 +14,74 @@ trans_langs = ["zh", "en", "jp", "kor", "fra", "de", "ru", "it"]
 ocr_langs = ["ch", "en", "japan", "korean", "fr", "german", "ru", "it"]
 
 # 保存指定区域截图并返回OCR结果
-def thread0_func(scr):
+def thread_screenshot(scr):
     while True:
         scr.save_screenshot()
 
 
 # 获取OCR结果, 翻译后插入队列
-def thread1_func(scr, trans, source_lang, target_lang):    
+def thread_in_queue(scr, trans, source_lang, target_lang):    
     comp = " "
     while True:
         origin = scr.get_result()               # OCR结果
-        # 源语种和目的语种不同, 进行翻译
-        if origin != None and source_lang != target_lang:
-            trans.translator(origin)            # 翻译
-            result = trans.get_result()         # 翻译结果
-
-            # 判断与上一次的结果是否相同
-            if result != comp:         
-                queue.put(result)     
-                comp = result
-
-        # 源语种与目的语种相同, 直接使用OCR
-        elif origin != None and source_lang == target_lang: 
-            if origin != comp:   
-                queue.put(origin)    
+        # 计算上一次OCR的结果和这一次的相似度, 如果两个文本相似度高于60%则不进行操作
+        if origin != None and difflib.SequenceMatcher(None, origin, comp).ratio() < 0.6:
+            # print(f"原句:{origin}")
+            # print(f"对照:{comp}")
+            # print("相似度小于0.6, 修改")
+            # 源语种和目的语种不同, 进行翻译
+            if origin != None and source_lang != target_lang:
+                trans.translator(origin)            # 翻译
+                result = trans.get_result()         # 翻译结果
+                queue.put(result) 
                 comp = origin
+
+            # 源语种与目的语种相同, 直接使用OCR
+            elif origin != None and source_lang == target_lang: 
+                queue.put(origin) 
+                comp = origin
+
         
 
-# 窗口随鼠标移动
-def move_window(window):
-    # 获取当前鼠标的位置
-    mouse_x = window.winfo_pointerx()
-    mouse_y = window.winfo_pointery()
-
-    # 设置窗口的宽度和高度
-    window_width = 500
-    window_height = 60
-
-    # 计算窗口的位置，使其在鼠标停留的位置上显示
-    position_right = mouse_x
-    position_top = mouse_y - window_height - 1
-
-    # 更新窗口的位置
-    window.geometry(f"{window_width}x{window_height}+{position_right}+{position_top}")
-
-
 # 生成对话框并展示OCR
-def thread2_func():
+def thread_mainWindow():
+    def start_move(event):
+        global x, y
+        x = event.x
+        y = event.y
+
+    def do_move(event):
+        global x, y
+        deltax = event.x - x
+        deltay = event.y - y
+        window.geometry(f"+{window.winfo_x() + deltax}+{window.winfo_y() + deltay}")   
+
+    def move_to_mouse(event):
+        mouse_x = window.winfo_pointerx()
+        mouse_y = window.winfo_pointery()
+
+        position_right = mouse_x
+        position_top = mouse_y - window_height - 1
+
+        window.geometry(f"{window_width}x{window_height}+{position_right}+{position_top}")
+
+    def do_exit(event):
+        os._exit(1)
+
     window = tkinter.Tk()
     window.title("OCR")   
-    # window.overrideredirect(True)               # 移除窗口边框
-    # window.attributes("-alpha", 0.5)            # 设置窗口透明度 (0.0 到 1.0)
-    window.attributes("-topmost", 1)            # 将窗口置于顶层
+    window.overrideredirect(True)                 # 移除窗口边框
+    window.attributes("-alpha", 0.5)              # 设置窗口透明度 (0.0 到 1.0)
+    window.attributes("-topmost", 1)              # 将窗口置于顶层
     window.configure(bg="black")
+
+    # 绑定事件
+    window.bind("<Button-1>", start_move)
+    window.bind("<B1-Motion>", do_move)
+    window.bind("<Control-KeyPress-b>", move_to_mouse)
+    window.bind("<Control-KeyPress-B>", move_to_mouse)
+    window.bind("<Control-KeyPress-q>", do_exit)
+    window.bind("<Control-KeyPress-Q>", do_exit)
 
     # 获取当前鼠标的位置
     mouse_x = window.winfo_pointerx()
@@ -78,14 +95,12 @@ def thread2_func():
     position_right = mouse_x
     position_top = mouse_y - window_height - 1
 
-    # 更新窗口的位置
     window.geometry(f"{window_width}x{window_height}+{position_right}+{position_top}")
 
-    text_widget = tkinter.Text(window, wrap=tkinter.WORD, font=("黑体", 14), bg="black", fg="white")
-    text_widget.pack(expand=True, fill="both") 
+    text_widget = ScrolledText(window, wrap=tkinter.WORD, font=("黑体", 14), bg="black", fg="white", cursor="arrow")
+    text_widget.pack(expand=True, fill="both")
 
     update_text((window, text_widget))
-    # move_window(window)
 
     window.mainloop()
     os._exit(1)
@@ -94,11 +109,9 @@ def thread2_func():
 def update_text(params):
     if not queue.empty():
         new_text = queue.get()
-        params[1].delete(1.0, tkinter.END)  # 清除现有文本
-        params[1].insert(tkinter.END, new_text)
-
-    params[0].after(50, update_text, (params))
-
+        params[1].replace(1.0, tkinter.END, new_text)
+    
+    params[1].after(50, update_text, (params))
 
 # 用户输入
 def lang_func():
@@ -161,13 +174,14 @@ def main():
     scr = screenshot.ScreenshotApp(ocr_lang)
     trans = translator.TranslatorApp(source_lang, target_lang)
     
-    thread0 = threading.Thread(target=thread0_func, args=(scr,))       
-    thread1 = threading.Thread(target=thread1_func, args=(scr, trans, source_lang, target_lang))
-    thread2 = threading.Thread(target=thread2_func)
+    thread0 = threading.Thread(target=thread_screenshot, args=(scr,))       
+    thread1 = threading.Thread(target=thread_in_queue, args=(scr, trans, source_lang, target_lang))
+    thread2 = threading.Thread(target=thread_mainWindow)
     scr.show_root()
     thread0.start()
     thread1.start()
     thread2.start()
+    thread2.join()
 
 if __name__ == "__main__":
     main()
